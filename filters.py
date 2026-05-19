@@ -127,14 +127,9 @@ if __name__ == "__main__":
 
     target_stock = 'RELIANCE.NS'
 
-    # ... (Your Z-Score, RSI, and EMA test code can stay here) ...
-
-    # 2. Calculate Volume Filter
-    # Extract the raw volume series for the target stock
     volume_series = volumes[target_stock]
 
     volume_metrics = calculate_volume_filter(volume_series, target_stock, window=20)
 
     print(f"\n--- Volume Confirmation Filter for {target_stock} ---")
-    # Print the tail to see if there have been any recent volume breakouts
     print(volume_metrics.tail())

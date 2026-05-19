@@ -36,30 +36,33 @@ def fetch_tickers_from_txt(file_path: str = 'Symbols_NSE.txt') -> list:
     return sorted(list(set(clean_tickers)))
 
 
-def fetch_and_preprocess(tickers, benchmark='^NSEI', start_date='2024-01-01', end_date='2026-05-20'):
+def fetch_and_preprocess(full_data, benchmark='^NSEI'):
     """
-    Fetches daily stock and benchmark data, then calculates log returns.
+    Takes the bulk downloaded market data and calculates log returns.
     """
-    print(f"Fetching data from {start_date} to {end_date}...")
-
-    # Combine target stocks with the benchmark index
-    all_tickers = tickers + [benchmark]
-
-    # Download data
-    data = yf.download(all_tickers, start=start_date, end=end_date, progress=False)
+    print("Preprocessing bulk data...")
 
     # 1. DATA COLLECTION
-    # Use 'Close' instead of 'Adj Close' due to yfinance API updates
-    prices = data['Close']
+    if isinstance(full_data.columns, pd.MultiIndex):
+        if 'Close' in full_data.columns.levels[0]:
+            # Grouped by feature (Default yfinance behavior)
+            prices = full_data['Close']
+            volumes = full_data['Volume']
+        else:
+            # Grouped by ticker (group_by='ticker')
+            prices = full_data.xs('Close', level=1, axis=1)
+            volumes = full_data.xs('Volume', level=1, axis=1)
+    else:
+        # Fallback for single ticker downloads
+        prices = full_data[['Close']]
+        volumes = full_data[['Volume']]
 
     # We only need volume for the individual stocks, not necessarily the index
-    volumes = data['Volume'].drop(columns=[benchmark], errors='ignore')
+    if benchmark in volumes.columns:
+        volumes = volumes.drop(columns=[benchmark], errors='ignore')
 
     # 2. PREPROCESSING: Log Returns
     log_returns = np.log(prices / prices.shift(1))
-
-    # FIX: Drop rows only if ALL columns are NaN (e.g., weekends).
-    # This prevents a single failed ticker from wiping out the whole dataset.
     log_returns = log_returns.dropna(how='all')
     prices = prices.dropna(how='all')
 
@@ -68,9 +71,19 @@ def fetch_and_preprocess(tickers, benchmark='^NSEI', start_date='2024-01-01', en
 
 # Example execution using a sample of Nifty 50 heavyweights
 if __name__ == "__main__":
-    # Put your test code in here.
-    # It will ONLY run if you execute data_loader.py directly,
-    # not when you import it into another file.
-    sample_stocks = ['RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'BMWVENTLTD.NS']
-    prices, volumes, log_returns = fetch_and_preprocess(sample_stocks)
+
+    sample_stocks = ['RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS']
+    benchmark = '^NSEI'
+
+    print("Running localized test download...")
+    test_data = yf.download(
+        sample_stocks + [benchmark],
+        start='2024-01-01',
+        end='2024-05-20',
+        group_by='ticker',
+        progress=False
+    )
+
+    prices, volumes, log_returns = fetch_and_preprocess(test_data, benchmark)
+    print("\n--- Log Returns (First 5 Rows) ---")
     print(log_returns.head())

@@ -11,7 +11,7 @@ from risk_management import calculate_atr_stop
 
 
 def run_quant_pipeline(tickers, benchmark='^NSEI', start_date='2024-01-01', end_date=None):
-    # Dynamically set end_date to today if not provided
+
     if end_date is None:
         end_date = datetime.today().strftime('%Y-%m-%d')
 
@@ -21,9 +21,7 @@ def run_quant_pipeline(tickers, benchmark='^NSEI', start_date='2024-01-01', end_
     # ---------------------------------------------------------
     # PHASE 1 & 2: DATA COLLECTION & PREPROCESSING
     # ---------------------------------------------------------
-    # IDEAL FIX: Update your fetch_and_preprocess function to return
-    # High, Low, and Close prices in addition to log_returns so you only fetch ONCE.
-    # For now, we fetch the full raw data here to share it efficiently.
+
 
     print("Fetching market data...")
     full_data = yf.download(
@@ -35,10 +33,8 @@ def run_quant_pipeline(tickers, benchmark='^NSEI', start_date='2024-01-01', end_
         ignore_tz=True
     )
 
-    # We rely on your fetch_and_preprocess to handle the heavy lifting,
-    # but ensure it doesn't do a second yf.download inside of it.
-    # (If it does, you should refactor it to accept `full_data` as an argument instead of `tickers`).
-    prices, volumes, log_returns = fetch_and_preprocess(tickers, benchmark, start_date, end_date)
+
+    prices, volumes, log_returns = fetch_and_preprocess(full_data, benchmark)
 
     master_screener = []
 
@@ -68,8 +64,7 @@ def run_quant_pipeline(tickers, benchmark='^NSEI', start_date='2024-01-01', end_
             ema_df = calculate_ema_filter(price_series, stock)
             vol_df = calculate_volume_filter(volume_series, stock)
 
-            # Extract High/Low/Close from the bulk download safely
-            # Note: yf.download structure changes if there's only 1 ticker vs multiple.
+
             if len(tickers) > 1:
                 high_series = full_data[stock]['High']
                 low_series = full_data[stock]['Low']
@@ -93,7 +88,7 @@ def run_quant_pipeline(tickers, benchmark='^NSEI', start_date='2024-01-01', end_
 
             latest_data = {
                 'Ticker': stock,
-                'Close_Price': price_series.dropna().iloc[-1],  # Added dropna() to prevent grabbing NaN if stock halted
+                'Close_Price': price_series.dropna().iloc[-1],
                 'Log_RS': log_rs_series.dropna().iloc[-1],
                 'RARSI': rarsi_df[f'{stock}_RARSI'].dropna().iloc[-1],
                 'Beta': beta_series.dropna().iloc[-1],
@@ -122,10 +117,12 @@ def run_quant_pipeline(tickers, benchmark='^NSEI', start_date='2024-01-01', end_
     # ---------------------------------------------------------
     print("\n=== APPLYING PIPELINE FILTERS ===")
 
+
     filtered_df = screener_df[
         (screener_df['Z_Score'] > 1.5) &
         (screener_df['RSI_Passed'] == True) &
-        (screener_df['EMA_Passed'] == True)
+        (screener_df['EMA_Passed'] == True) &
+        (screener_df['Close_Price'] > 50.0)
         ].copy()
 
     # ---------------------------------------------------------
@@ -151,13 +148,13 @@ def run_quant_pipeline(tickers, benchmark='^NSEI', start_date='2024-01-01', end_
 
 
 if __name__ == "__main__":
-    # 1. TEST MODE (Fast)
-    target_universe = [
-        'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'ZOMATO.NS',
-        'TATAMOTORS.NS', 'INFY.NS', 'BHARTIARTL.NS', 'ITC.NS'
-    ]
+    # 1. TEST MODE
+    # target_universe = [
+    #     'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'ZOMATO.NS',
+    #     'TATAMOTORS.NS', 'INFY.NS', 'BHARTIARTL.NS', 'ITC.NS'
+    # ]
 
-    # 2. PRODUCTION MODE (Slow - Uncomment to run full market)
-    # target_universe = fetch_tickers_from_txt('Symbols_NSE.txt')
+    # 2. PRODUCTION MODE (Active - Runs full market)
+    target_universe = fetch_tickers_from_txt('Symbols_NSE.txt')
 
     run_quant_pipeline(target_universe)
