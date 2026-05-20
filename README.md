@@ -97,3 +97,30 @@ pip install -r requirements.txt
 
 # Launch the FastAPI production server
 uvicorn api:app --reload
+```
+### 2. Frontend Interface Mount
+Since the UI is built utilizing native, optimized browser APIs, you don't need any complex compilation scripts or heavy Node module overhead:
+
+1. Open the `Frontend/` folder.
+2. Launch `index.html` via VS Code's **Live Server** plugin or click directly on the layout file.
+3. Click **Deploy Live Scanner** to kick off background market calculations.
+
+### 💾 System Snapshot Sample Output
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "Ticker": "HALEOSLABS.NS",
+      "Close_Price": 1556.50,
+      "Alpha": 0.00457,
+      "Beta": 0.29,
+      "Log_RS": 0.0804,
+      "Alpha_Weight_%": 100.00,
+      "Beta_Weight_%": 100.00,
+      "Stop_Loss": 1383.62
+    }
+  ]
+}
+```
