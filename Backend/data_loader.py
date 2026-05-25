@@ -10,10 +10,6 @@ YF_CACHE_DIR = BASE_DIR / '.yf_cache'
 
 
 def configure_yfinance_cache():
-    """
-    Keep yfinance's sqlite cache in the project so API scans do not fail
-    when the process home/cache directory is missing or read-only.
-    """
     YF_CACHE_DIR.mkdir(exist_ok=True)
     if hasattr(yf, "set_tz_cache_location"):
         yf.set_tz_cache_location(str(YF_CACHE_DIR))
