@@ -71,6 +71,8 @@ $$
 \text{Stop Level} = \text{Close} - (2 \times \text{ATR}_{14})
 $$
 
+The features extracted are used to predict winning probabilities of stocks modeled by logistic regression
+
 ---
 
 ## 🛠️ Tech Stack & Optimization Engineering
